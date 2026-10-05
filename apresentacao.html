@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apresentação: Pipeline de Dados com PySpark</title>
+    <style>
+        :root {
+            --bg-canvas: #0b0f19;
+            --surface-card: #151d30;
+            --surface-code: #0a0e17;
+            --border-subtle: #243049;
+            --text-heading: #f1f5f9;
+            --text-body: #94a3b8;
+            --text-highlight: #38bdf8;
+            --accent-spark: #e25a1c;
+            --accent-lazy: #a855f7;
+            --accent-action: #22c55e;
+            --accent-border: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-body);
+            padding: 32px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .presentation-wrapper {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Cabeçalho da Apresentação */
+        header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(226, 90, 28, 0.08) 0%, rgba(21, 29, 48, 0) 100%);
+            border-radius: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        header h1 {
+            color: var(--text-heading);
+            font-size: 2.2rem;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        header h1 span {
+            color: var(--accent-spark);
+        }
+
+        header p {
+            color: var(--text-body);
+            font-size: 1.05rem;
+        }
+
+        /* Grade Principal */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 950px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Componentes de Card */
+        .card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            padding: 14px 20px;
+            background-color: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            color: var(--text-heading);
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-spark { background: rgba(226, 90, 28, 0.15); color: #fb923c; border: 1px solid rgba(226, 90, 28, 0.3); }
+        .tag-lazy { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .tag-action { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+
+        .card-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Bloco de Código Estilizado */
+        pre {
+            background-color: var(--surface-code);
+            padding: 18px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-spark);
+            overflow-x: auto;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .c-kw { color: #f472b6; font-weight: 600; }
+        .c-fn { color: #38bdf8; }
+        .c-str { color: #a3e635; }
+        .c-num { color: #fb923c; }
+        .c-com { color: #64748b; font-style: italic; }
+
+        /* Linha do Tempo / DAG */
+        .dag-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .dag-node {
+            background: rgba(10, 14, 23, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+        }
+
+        .dag-node.lazy-border { border-left: 4px solid var(--accent-lazy); }
+        .dag-node.action-border { border-left: 4px solid var(--accent-action); }
+
+        .dag-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dag-step-name {
+            font-weight: 600;
+            color: var(--text-heading);
+            font-size: 0.9rem;
+        }
+
+        .dag-desc {
+            font-size: 0.8rem;
+            color: var(--text-body);
+        }
+
+        /* Seção Inferior: Visualização de Dados */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .data-showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .data-showcase {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tabela Estilizada */
+        .table-container {
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th {
+            background: #0d1321;
+            color: var(--text-highlight);
+            padding: 10px 14px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(36, 48, 73, 0.4);
+            color: #e2e8f0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .row-discarded {
+            background-color: rgba(239, 68, 68, 0.06);
+            color: #64748b;
+            text-decoration: line-through;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .status-badge.ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; text-decoration: none; display: inline-block; }
+        .status-badge.ko { background: rgba(239, 68, 68, 0.2); color: #f87171; text-decoration: none; display: inline-block; }
+
+        /* Terminal Spark Output */
+        .spark-terminal {
+            background: #05070a;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #4ade80;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .terminal-log {
+            color: #64748b;
+            margin-bottom: 8px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        <!-- Cabeçalho -->
+        <header>
+            <h1>Arquitetura & Execução no <span>Apache Spark</span></h1>
+            <p>Análise de fluxo: Carga de Dados RDD, Transformações Lazy e Disparo de Ação</p>
+        </header>
+
+        <!-- Grade de Código e DAG -->
+        <div class="layout-grid">
+            <!-- Coluna 1: Código-Fonte -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🐍 Script de Processamento (PySpark)</span>
+                    <span class="tag tag-spark">Batch Driver</span>
+                </div>
+                <div class="card-body">
+                    <pre><code><span class="c-kw">from</span> pyspark.sql <span class="c-kw">import</span> SparkSession
+
+<span class="c-com"># 1. Inicializa a sessão local do Spark</span>
+spark = SparkSession.builder \
+    .<span class="c-fn">appName</span>(<span class="c-str">"DemonstracaoSpark"</span>) \
+    .<span class="c-fn">master</span>(<span class="c-str">"local[*]"</span>) \
+    .<span class="c-fn">getOrCreate</span>()
+
+<span class="c-com"># 2. Dados de exemplo</span>
+dados = [
+    (<span class="c-str">"Notebook"</span>, <span class="c-str">"Eletrônicos"</span>, <span class="c-num">3500</span>),
+    (<span class="c-str">"Celular"</span>, <span class="c-str">"Eletrônicos"</span>, <span class="c-num">2000</span>),
+    (<span class="c-str">"Cadeira"</span>, <span class="c-str">"Móveis"</span>, <span class="c-num">450</span>),
+    (<span class="c-str">"Mesa"</span>, <span class="c-str">"Móveis"</span>, <span class="c-num">800</span>),
+    (<span class="c-str">"Monitor"</span>, <span class="c-str">"Eletrônicos"</span>, <span class="c-num">1200</span>)
+]
+
+<span class="c-com"># 3. Cria o DataFrame distribuído</span>
+df = spark.<span class="c-fn">createDataFrame</span>(dados, [<span class="c-str">"Produto"</span>, <span class="c-str">"Categoria"</span>, <span class="c-str">"Preco"</span>])
+
+<span class="c-com"># 4. TRANSFORMAÇÕES (Lazy Evaluation)</span>
+df_filtrado = df.<span class="c-fn">filter</span>(df[<span class="c-str">"Preco"</span>] &gt; <span class="c-num">500</span>)
+df_resultado = df_filtrado.<span class="c-fn">groupBy</span>(<span class="c-str">"Categoria"</span>).<span class="c-fn">count</span>()
+
+<span class="c-com"># 5. AÇÃO: Dispara processamento e exibe</span>
+df_resultado.<span class="c-fn">show</span>()
+
+<span class="c-com"># 6. Encerra a sessão</span>
+spark.<span class="c-fn">stop</span>()</code></pre>
+                </div>
+            </div>
+
+            <!-- Coluna 2: Grafo de Linhagem e DAG -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">⚙️ Plano de Execução Lógico (DAG)</span>
+                    <span class="tag tag-lazy">Grafo Acíclico</span>
+                </div>
+                <div class="card-body">
+                    <div class="dag-timeline">
+                        <div class="dag-node">
+                            <div class="dag-header">
+                                <span class="dag-step-name">1. createDataFrame</span>
+                                <span class="tag tag-spark">Input</span>
+                            </div>
+                            <span class="dag-desc">Distribui a coleção Python para nós trabalhadores como RDD particionado.</span>
+                        </div>
+
+                        <div class="dag-node lazy-border">
+                            <div class="dag-header">
+                                <span class="dag-step-name">2. filter(Preco &gt; 500)</span>
+                                <span class="tag tag-lazy">Transformação (Lazy)</span>
+                            </div>
+                            <span class="dag-desc">Não lê os dados de imediato. Apenas adiciona uma regra de projeção/filtro ao plano lógico.</span>
+                        </div>
+
+                        <div class="dag-node lazy-border">
+                            <div class="dag-header">
+                                <span class="dag-step-name">3. groupBy("Categoria").count()</span>
+                                <span class="tag tag-lazy">Transformação (Shuffle)</span>
+                            </div>
+                            <span class="dag-desc">Planeja a redistribuição e agrupamento dos dados entre partições do cluster.</span>
+                        </div>
+
+                        <div class="dag-node action-border">
+                            <div class="dag-header">
+                                <span class="dag-step-name">4. show()</span>
+                                <span class="tag tag-action">Ação (Disparo)</span>
+                            </div>
+                            <span class="dag-desc">Quebra a preguiça (Lazy). O Catalyst Optimizer gera o plano físico e dispara tarefas aos nós executores.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linha Inferior: Dados & Terminal -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <span class="card-title">📊 Rastreabilidade dos Dados: Dataset vs Resultado</span>
+                    <span class="tag tag-action">Saída do Driver</span>
+                </div>
+                <div class="card-body">
+                    <div class="data-showcase">
+                        <!-- Tabela Base -->
+                        <div>
+                            <p style="font-size: 0.85rem; color: var(--text-highlight); margin-bottom: 8px; font-weight: 600;">Estado do DataFrame com Filtro (Preco &gt; 500):</p>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Produto</th>
+                                            <th>Categoria</th>
+                                            <th>Preço</th>
+                                            <th>Avaliação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Notebook</td>
+                                            <td>Eletrônicos</td>
+                                            <td>R$ 3.600</td>
+                                            <td><span class="status-badge ok">Processado</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Celular</td>
+                                            <td>Eletrônicos</td>
+                                            <td>R$ 3.000
+
+                                            </td>
+                                            <td><span class="status-badge ok">Processado</span></td>
+                                        </tr>
+                                        <tr class="row-discarded">
+                                            <td>Cadeira</td>
+                                            <td>Móveis</td>
+                                            <td>R$ 450</td>
+                                            <td><span class="status-badge ko">Ignorado (&le; 500)</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mesa</td>
+                                            <td>Móveis</td>
+                                            <td>R$ 800</td>
+                                            <td><span class="status-badge ok">Processado</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Monitor</td>
+                                            <td>Eletrônicos</td>
+                                            <td>R$ 1.200</td>
+                                            <td><span class="status-badge ok">Processado</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Console do Terminal Spark -->
+                        <div>
+                            <p style="font-size: 0.85rem; color: var(--accent-action); margin-bottom: 8px; font-weight: 600;">Saída Renderizada via Terminal (.show):</p>
+                            <div class="spark-terminal"><span class="terminal-log">== Physical Plan ==
+HashAggregate(keys=[Categoria], functions=[count(1)])
++- Exchange hashpartitioning(Categoria, 200)
+   +- Filter (isnotnull(Preco) AND (Preco > 500))
+
+[INFO] SparkContext: Job 0 finished execution</span>+-------------+-----+
+|    Categoria|count|
++-------------+-----+
+|  Eletrônicos|    3|
+|       Móveis|    1|
++-------------+-----+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
